@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, Send, Search, Menu, Mail, Bell, Edit3, User, LogOut, Settings, Award, Shield, MessageSquare, Image, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Send, Search, Menu, Mail, Bell, Edit3, User, Award, Shield, MessageSquare, Image, X } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import logoImg from './assets/logo.png';
 
@@ -28,9 +28,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(false);
   const [activeTab, setActiveTab] = useState('feed');
-  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
 
   // Éléments pour la gestion de l'image du post
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -45,7 +43,6 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -81,7 +78,6 @@ function App() {
 
   const fetchPosts = async () => {
     try {
-      setFetching(true);
       const { data, error } = await supabase
         .from('posts')
         .select(`id, content, image_url, created_at, profiles ( full_name, avatar_url ), likes ( user_id ), comments ( id, content, created_at, profiles ( full_name ) )`)
@@ -99,7 +95,7 @@ function App() {
           comments: post.comments || []
         })));
       }
-    } catch (error) { console.error(error); } finally { setFetching(false); }
+    } catch (error) { console.error(error); }
   };
 
   const fetchChatMessages = async () => {
@@ -122,12 +118,11 @@ function App() {
     } catch (error) { console.error(error); }
   };
 
-  // Gérer la sélection et la prévisualisation de la photo
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSelectedImage(file);
-      setImagePreview(URL.createObjectURL(file)); // Crée un lien local temporaire pour l'affichage immédiat
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -136,7 +131,6 @@ function App() {
     setImagePreview(null);
   };
 
-  // PUBLIER UN MESSAGE (TEXTE + IMAGE OPTIONNELLE)
   const handlePublishPost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostContent.trim() && !selectedImage || !session?.user) return;
@@ -145,7 +139,6 @@ function App() {
     try {
       let uploadedImageUrl = '';
 
-      // 1. S'il y a une image, on l'envoie d'abord dans le Storage Supabase
       if (selectedImage) {
         const fileExt = selectedImage.name.split('.').pop();
         const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
@@ -157,12 +150,10 @@ function App() {
 
         if (uploadError) throw uploadError;
 
-        // Récupérer l'URL publique finale de la photo stockée
         const { data } = supabase.storage.from('post-images').getPublicUrl(filePath);
         uploadedImageUrl = data.publicUrl;
       }
 
-      // 2. On insère le post avec le lien de la photo s'il y en a une
       await supabase.from('posts').insert([
         { 
           content: newPostContent.trim(), 
@@ -205,7 +196,6 @@ function App() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthLoading(true);
     try {
       if (isSignUp) {
         await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
@@ -213,7 +203,7 @@ function App() {
       } else {
         await supabase.auth.signInWithPassword({ email, password });
       }
-    } catch (error: any) { alert(error.message); } finally { setAuthLoading(false); }
+    } catch (error: any) { alert(error.message); }
   };
 
   const filteredPosts = posts.filter(post => 
@@ -263,12 +253,10 @@ function App() {
         
         {activeTab === 'feed' && (
           <>
-            {/* ENCADRÉ DE PUBLICATION INTELLIGENT */}
             <div className="bg-white rounded-[2rem] shadow-sm p-5 mb-6 border border-gray-50">
               <form onSubmit={handlePublishPost}>
                 <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Exprimez-vous sur KoZons..." className="w-full resize-none text-sm border-none focus:ring-0 min-h-[60px] bg-transparent" />
                 
-                {/* Zone d'affichage de l'aperçu de la photo sélectionnée */}
                 {imagePreview && (
                   <div className="relative mt-2 mb-4 rounded-2xl overflow-hidden group max-h-48 border">
                     <img src={imagePreview} alt="Aperçu" className="w-full h-full object-cover" />
@@ -279,7 +267,6 @@ function App() {
                 )}
 
                 <div className="flex justify-between items-center mt-2 border-t pt-3">
-                  {/* Bouton d'ajout de photo masqué derrière une icône Lucide */}
                   <label className="cursor-pointer p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-[#33CC33] transition-colors">
                     <Image className="w-5 h-5" />
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -292,7 +279,6 @@ function App() {
               </form>
             </div>
 
-            {/* FIL D'ACTUALITÉ AVEC SUPPORTS PHOTOS */}
             <div className="space-y-5">
               {posts.map((post) => {
                 const liked = post.likes.some(l => l.user_id === session.user.id);
@@ -308,7 +294,6 @@ function App() {
                     
                     <p className="text-gray-700 text-sm leading-relaxed mb-4 px-1">{post.content}</p>
                     
-                    {/* SI LE POST CONTIENT UNE IMAGE PUBLIC, ON L'AFFICHE ICI */}
                     {post.image_url && (
                       <div className="rounded-2xl overflow-hidden border border-gray-100 mb-4 bg-gray-50 max-h-64 flex items-center justify-center">
                         <img src={post.image_url} alt="Publication" className="w-full h-full object-cover" />
@@ -333,7 +318,6 @@ function App() {
           </>
         )}
         
-        {/* LES AUTRES ONGLETS DE L'APP DE ME DE LA SEMAINE DERNIÈRE RESTENT IDENTIQUES */}
         {activeTab === 'menu' && (
           <div className="space-y-4">
             <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-50">

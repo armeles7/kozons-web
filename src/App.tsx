@@ -30,15 +30,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('feed');
 
-  // Éléments pour la gestion de l'image du post
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // États pour l'onglet Messagerie
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newLiveMessage, setNewLiveMessage] = useState('');
 
-  // États Auth
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -231,8 +228,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FA] text-gray-800 font-sans antialiased">
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <div className="min-h-screen bg-[#F4F7FA] text-gray-800 font-sans antialiased overflow-x-hidden">
+      {/* HEADER FIXÉ AVEC UN Z-INDEX FORT (Z-50) POUR RESTER AU-DESSUS DE TOUT */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs">
         <div className="flex justify-center pt-4 pb-2">
           <div className="flex items-center space-x-2">
             <img src={logoImg} alt="KoZons" className="w-8 h-8" />
@@ -249,7 +247,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto py-6 px-4 pb-20">
+      <main className="max-w-md mx-auto py-6 px-4 pb-20 relative z-10">
         
         {activeTab === 'feed' && (
           <>
@@ -257,9 +255,10 @@ function App() {
               <form onSubmit={handlePublishPost}>
                 <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Exprimez-vous sur KoZons..." className="w-full resize-none text-sm border-none focus:ring-0 min-h-[60px] bg-transparent" />
                 
+                {/* APERÇU CADRÉ DE L'IMAGE SÉLECTIONNÉE */}
                 {imagePreview && (
-                  <div className="relative mt-2 mb-4 rounded-2xl overflow-hidden group max-h-48 border">
-                    <img src={imagePreview} alt="Aperçu" className="w-full h-full object-cover" />
+                  <div className="relative mt-2 mb-4 rounded-2xl overflow-hidden border border-gray-100 max-h-60 w-full flex items-center justify-center bg-gray-50">
+                    <img src={imagePreview} alt="Aperçu" className="w-full h-full max-h-60 object-cover" />
                     <button type="button" onClick={removeSelectedImage} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors">
                       <X className="w-4 h-4" />
                     </button>
@@ -283,7 +282,7 @@ function App() {
               {posts.map((post) => {
                 const liked = post.likes.some(l => l.user_id === session.user.id);
                 return (
-                  <article key={post.id} className="bg-white rounded-[2.5rem] shadow-sm p-6 border border-gray-50">
+                  <article key={post.id} className="bg-white rounded-[2.5rem] shadow-sm p-6 border border-gray-50 overflow-hidden">
                     <div className="flex items-center space-x-3 mb-4">
                       <img src={post.user_avatar} className="w-11 h-11 rounded-full object-cover" />
                       <div>
@@ -294,9 +293,14 @@ function App() {
                     
                     <p className="text-gray-700 text-sm leading-relaxed mb-4 px-1">{post.content}</p>
                     
+                    {/* ZONE IMAGE DU POST TOTALEMENT SÉCURISÉE CONTRE LES DÉBORDEMENTS */}
                     {post.image_url && (
-                      <div className="rounded-2xl overflow-hidden border border-gray-100 mb-4 bg-gray-50 max-h-64 flex items-center justify-center">
-                        <img src={post.image_url} alt="Publication" className="w-full h-full object-cover" />
+                      <div className="w-full rounded-2xl overflow-hidden border border-gray-100/70 mb-4 bg-gray-50 max-h-72 flex items-center justify-center">
+                        <img 
+                          src={post.image_url} 
+                          alt="Publication" 
+                          className="w-full h-full max-h-72 object-cover object-center" 
+                        />
                       </div>
                     )}
 
@@ -318,6 +322,7 @@ function App() {
           </>
         )}
         
+        {/* Les autres onglets restent identiques */}
         {activeTab === 'menu' && (
           <div className="space-y-4">
             <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-50">
@@ -384,7 +389,7 @@ function App() {
              <div className="w-24 h-24 bg-green-50 text-[#33CC33] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black">{session.user.email[0].toUpperCase()}</div>
              <h2 className="font-black text-xl mb-1">Mon Profil</h2>
              <p className="text-gray-400 text-sm mb-8">{session.user.email}</p>
-             <button onClick={() => supabase.auth.signOut()} className="w-full bg-red-50 text-red-500 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2"><span>Déconnexion</span></button>
+             <button onClick={() => supabase.auth.signOut()} className="w-full bg-red-50 text-red-600 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2"><span>Déconnexion</span></button>
           </div>
         )}
 
@@ -396,8 +401,8 @@ function App() {
 function TabButton({ id, icon, active, color, onClick }: any) {
   const isActive = active === id;
   return (
-    <button onClick={() => onClick(id)} className={`relative flex-1 flex justify-center py-2.5 mx-1 rounded-2xl transition-all duration-300 ${isActive ? 'scale-110 shadow-md' : ''}`} style={{ backgroundColor: isActive ? color : 'transparent' }}>
-      <div className={`transition-colors ${isActive ? 'text-white' : 'text-gray-400'}`}>{icon}</div>
+    <button onClick={() => onClick(id)} className={`relative flex-1 flex justify-center py-2.5 mx-1 rounded-2xl transition-all duration-300 ${isActive ? 'scale-110 shadow-md text-white' : 'text-gray-400'}`} style={{ backgroundColor: isActive ? color : 'transparent' }}>
+      <div className="transition-colors">{icon}</div>
     </button>
   );
 }
